@@ -3,60 +3,49 @@ package pl.babel.todo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
-@WebServlet(name = "Todo", urlPatterns = {"/api/todos/*"})
-public class TodoServlet extends HttpServlet {
-    private final Logger logger = LoggerFactory.getLogger( TodoServlet.class);
+@RestController
+@RequestMapping("/api/todos")
+class TodoServlet {
+    private final Logger logger = LoggerFactory.getLogger( TodoServlet.class );
 
     private TodoRepository repository;
-    private ObjectMapper mapper;
 
-    /**
-     * Servlet container needs it.
-     */
-    @SuppressWarnings("unused")
-    public TodoServlet() {
-        this(new TodoRepository(), new ObjectMapper());
-    }
-
-    private TodoServlet(TodoRepository repository, ObjectMapper mapper) {
+    private TodoServlet(TodoRepository repository) {
         this.repository = repository;
-        this.mapper = mapper;
     }
 
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        logger.info("Got request: " + req.getParameterMap());
-        resp.setContentType("application/json;charset=UTF-8");
-        mapper.writeValue(resp.getOutputStream(), repository.findAll());
+    @GetMapping
+    ResponseEntity<List<Todo>> findAllTodos() {
+        logger.info( "Got request" );
+        return ResponseEntity.ok( repository.findAll() );
     }
 
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        logger.info("Put request");
-        var pathInfo = req.getPathInfo();
-        Integer todoId = null;
-        try {
-            todoId = Integer.valueOf(pathInfo.substring(1));
-        } catch (NumberFormatException e) {
-            logger.warn("Non-numeric todo id used: " + pathInfo);
-        }
-        resp.setContentType("application/json;charset=UTF-8");
-        mapper.writeValue(resp.getOutputStream(), repository.toggleTodo(todoId));
+    @PutMapping("/{id}")
+    ResponseEntity<Todo> toggleTodo(@PathVariable Integer id) {
+        logger.info( "Put request" );
+        var todo = repository.findById( id );
+        todo.ifPresent( todo1 ->
+        {
+            todo1.setDone( !todo1.getDone() );
+            repository.save( todo1 );
+        } );
+        return todo.map( ResponseEntity::ok ).orElse( ResponseEntity.notFound().build() );
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        logger.info("Post request");
-        var todo = mapper.readValue(req.getInputStream(), Todo.class);
-        resp.setContentType("application/json;charset=UTF-8");
-        mapper.writeValue(resp.getOutputStream(), repository.addTodo( todo ));
+    @PostMapping
+    ResponseEntity<Todo> saveTodo(@RequestBody Todo todo) {
+        logger.info( "Post request" );
+        return ResponseEntity.ok( repository.save( todo ) );
     }
 
 }
