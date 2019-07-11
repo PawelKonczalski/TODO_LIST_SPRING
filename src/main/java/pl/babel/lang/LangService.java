@@ -1,16 +1,15 @@
 package pl.babel.lang;
 
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Service
 class LangService {
     private LangRepository langRepository;
 
-    LangService() {
-        this(new LangRepository());
-    }
-
-    private LangService(LangRepository langRepository) {
+    LangService(LangRepository langRepository) {
         this.langRepository = langRepository;
     }
 
@@ -18,7 +17,7 @@ class LangService {
         return langRepository
                 .findAll()
                 .stream()
-                .map( LangDTO::new)
+                .map(LangDTO::new)
                 .collect(Collectors.toList());
     }
 }
