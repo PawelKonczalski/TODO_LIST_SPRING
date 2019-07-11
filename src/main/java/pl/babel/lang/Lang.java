@@ -30,7 +30,7 @@ class Lang {
         this.code = code;
     }
 
-    Integer getId() {
+    public Integer getId() {
         return id;
     }
 
